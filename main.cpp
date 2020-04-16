@@ -21,6 +21,8 @@
 
 #include <sl/Camera.hpp>
 
+#include "utils.hpp"
+
 using namespace std;
 using namespace sl;
 
@@ -31,7 +33,9 @@ int main(int argc, char **argv) {
 
     // Set configuration parameters
     InitParameters init_parameters;
-    init_parameters.depth_mode = DEPTH_MODE::PERFORMANCE; // Use PERFORMANCE depth mode
+    init_parameters.camera_resolution = RESOLUTION::HD1080;
+    init_parameters.camera_fps = 30;
+    init_parameters.depth_mode = DEPTH_MODE::ULTRA; // Use ULTRA depth mode
     init_parameters.coordinate_units = UNIT::MILLIMETER; // Use millimeter units (for depth measurements)
 
     // Open the camera
@@ -49,7 +53,10 @@ int main(int argc, char **argv) {
     int i = 0;
     sl::Mat image, depth, point_cloud;
 
-    while (i < 50) {
+    // Start grabbing, stop with Ctrl-C
+    SetCtrlHandler();
+
+    while (!exit_app) {
         // A new image is available if grab() returns ERROR_CODE::SUCCESS
         if (zed.grab(runtime_parameters) == ERROR_CODE::SUCCESS) {
             // Retrieve left image
@@ -66,11 +73,17 @@ int main(int argc, char **argv) {
             sl::float4 point_cloud_value;
             point_cloud.getValue(x, y, &point_cloud_value);
 
+            sl::float1 depth_value;
+            depth.getValue(x, y, &depth_value);
+
             float distance = sqrt(point_cloud_value.x * point_cloud_value.x + point_cloud_value.y * point_cloud_value.y + point_cloud_value.z * point_cloud_value.z);
             cout<<"Distance to Camera at {"<<x<<";"<<y<<"}: "<<distance<<"mm"<<endl;
-
             // Increment the loop
             i++;
+        }
+        else
+        {
+          cout << "Error ... failed to grab!" << endl;
         }
     }
     // Close the camera
